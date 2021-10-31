@@ -16,16 +16,18 @@ class DQN(nn.Module):
         """
         super().__init__()
 
-        self.glyphs_shape = self.glyphs_shape
+        self.glyphs_shape = glyphs.shape
         self.action_space = action_space.n
-        self.h = self.glyphs_shape[0]
-        self.w = self.glyphs_shape[1]
+        self.h = glyphs.shape[0]
+        self.w = glyphs.shape[1]
         self.conv1 = nn.Conv2d(self.h, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
         #For the 84x84 input, the output from the convolution layer will have 3136
-        self.fc1 = nn.Linear(81, 512)
+        #9x9 -> 7x7 -> 5x5
+        #5x5x32
+        self.fc1 = nn.Linear(800, 512)
         self.fc2 = nn.Linear(512, action_space.n)
 
 
