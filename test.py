@@ -5,10 +5,12 @@ import pdb
 
 env = gym.make("MiniHack-Quest-Hard-v0", observation_keys=("glyphs", "chars", "colors", "pixel"))
 env.reset() # each reset generates a new environment instance
-env.render()
+#env.render()
 next_state, reward, done, obs = env.step(1) 
-env.render()
+#env.render()
 next_state, reward, done, obs = env.step(2) 
-env.render()
+#env.render()
+walls = ord('-')
+print(walls)
 a = np.unique(next_state["chars"])
-pdb.set_trace()
+#pdb.set_trace()

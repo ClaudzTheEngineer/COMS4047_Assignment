@@ -9,6 +9,7 @@ from dqn.wrappers import *
 import time
 import minihack 
 from nle import nethack
+import copy
 
 if __name__ == "__main__":
 
@@ -37,7 +38,61 @@ if __name__ == "__main__":
         nethack.Command.PICKUP,
         nethack.Command.INVENTORY,
         nethack.Command.SEARCH,
-    )
+    )   
+
+    STATS_IDX = {
+        'x_coordinate': 0,
+        'y_coordinate': 1,
+        'score': 9,
+    }
+
+    def format_observations(observation):
+        # - and | The walls of a room, or an open door. Or a grave (|).
+        # . The floor of a room, ice, or a doorless doorway.
+        # # A corridor, or iron bars, or a tree, or possibly a kitchen sink (if your dungeon has
+        # sinks), or a drawbridge.
+        # > Stairs down: a way to the next level.
+        # < Stairs up: a way to the previous level.
+        # + A closed door, or a spellbook containing a spell you may be able to learn.
+        # @ Your character or a human.
+        # $ A pile of gold.
+        # ^ A trap (once you have detected it).
+        # ) A weapon.
+        # [ A suit or piece of armor.
+        # % Something edible (not necessarily healthy).
+        # ? A scroll.
+        # / A wand.
+        # = A ring.
+        # ! A potion.
+        # ( A useful item (pick-axe, key, lamp . . . ).
+        # " An amulet or a spider web.
+        # * A gem or rock (possibly valuable, possibly worthless).
+        # ` A boulder or statue.
+        # 0 An iron ball.
+        # _ An altar, or an iron chain.
+        # { A fountain.
+        # } A pool of water or moat or a pool of lava.
+        # \ An opulent throne
+        # I This marks the last known location of an invisible or otherwise unseen monster. Note that the monster could have moved
+
+        walls = ord('-')
+        doors = ord('|')
+        closed_door = ord('+')
+        #corridor = ord('#')
+        lava = ord('}')
+        monster = ord('I')
+
+        copy_obs = observation['chars']
+        obs_chars = np.zeros(copy_obs.shape)
+        obs_chars[np.where((copy_obs == lava) & (copy_obs == monster))] = 0.2
+        obs_chars[np.where((copy_obs == walls) | (copy_obs == doors) | copy_obs == closed_door)] = 0.5
+
+        x_loc = observation['blstats'][STATS_IDX['x_coordinate']]
+        y_loc = observation['blstats'][STATS_IDX['y_coordinate']]
+        score = observation['blstats'][STATS_IDX['score']]
+
+        obs_stats = np.array([x_loc,y_loc,score])
+        return obs_chars, obs_stats.astype(np.float32)
 
     np.random.seed(hyper_params["seed"])
     random.seed(hyper_params["seed"])
@@ -61,6 +116,8 @@ if __name__ == "__main__":
     episode_loss = []
 
     state = env.reset()
+    print(state)
+    glyphs,stats = format_observations(state)
     for t in range(hyper_params["num-steps"]):
         fraction = min(1.0, float(t) / eps_timesteps)
         eps_threshold = hyper_params["eps-start"] + fraction * (
@@ -71,10 +128,10 @@ if __name__ == "__main__":
         if sample <= eps_threshold:
             action = env.action_space.sample()
         else:
-            action = agent.act(state)
+            action = agent.act(glyphs,stats)
 
         # Take step in env
-        next_state, reward, done, _ = env.step(action)
+        next_state, reward, done, _ = env.step(glyphs,stats)
         # Add state, action, reward, next_state, float(done) to reply memory - cast done to float
         done = float(done)
 

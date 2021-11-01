@@ -18,7 +18,7 @@ class ReplayBuffer:
     def __len__(self):
         return len(self._storage)
 
-    def add(self, state, action, reward, next_state, done):
+    def add(self, glyph_state, stat_state, action, reward, glyph_next_state, state_next_state, done):
         """
         Add a transition to the buffer. Old transitions will be overwritten if the buffer is full.
         :param state: the agent's initial state
@@ -27,7 +27,7 @@ class ReplayBuffer:
         :param next_state: the subsequent state
         :param done: whether the episode terminated
         """
-        data = (state, action, reward, next_state, done)
+        data = (glyph_state, stat_state, action, reward, glyph_next_state, state_next_state, done)
 
         if self._next_idx >= len(self._storage):
             self._storage.append(data)
