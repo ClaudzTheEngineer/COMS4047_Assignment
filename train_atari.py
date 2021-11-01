@@ -47,12 +47,11 @@ if __name__ == "__main__":
     action_space = env.action_space
 
     # Call the gym wrapper to create the video
-    env = gym.wrappers.Monitor(env, './minihack_video/', video_callable=lambda episode_id: episode_id % 100 == 0,force=True)
+    #env = gym.wrappers.Monitor(env, './minihack_video/', video_callable=lambda episode_id: episode_id % 100 == 0,force=True)
 
     replay_buffer = ReplayBuffer(hyper_params["replay-buffer-size"])
 
     agent = DQNAgent(env.observation_space["glyphs_crop"], env.action_space, replay_buffer,
-                     hyper_params["use-double-dqn"],
                      hyper_params["learning-rate"],
                      hyper_params["batch-size"],
                      hyper_params["discount-factor"])
@@ -69,8 +68,6 @@ if __name__ == "__main__":
         )
         sample = random.random()
 
-        # TODO
-        # Select random action if sample is less equal than eps_threshold
         if sample <= eps_threshold:
             action = env.action_space.sample()
         else:

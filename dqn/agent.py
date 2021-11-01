@@ -10,10 +10,9 @@ device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class DQNAgent:
     def __init__(
         self,
-        observation_space: spaces.Box,
+        glyphs: spaces.Box,
         action_space: spaces.Discrete,
         replay_buffer: ReplayBuffer,
-        use_double_dqn,
         lr,
         batch_size,
         gamma
@@ -28,10 +27,8 @@ class DQNAgent:
         :param gamma: the discount factor
         """
 
-
-        # TODO: Initialise agent's networks, optimiser and replay buffer [3]
-        self.policy_network = DQN(observation_space, action_space).to(device)
-        self.target_network = DQN(observation_space, action_space).to(device)
+        self.policy_network = DQN(glyphs, action_space).to(device)
+        self.target_network = DQN(glyphs, action_space).to(device)
         self.update_target_network()
         self.target_network.eval()
 
@@ -49,13 +46,6 @@ class DQNAgent:
         Optimise the TD-error over a single minibatch of transitions
         :return: the loss
         """
-        # TODO
-        #   Optimise the TD-error over a single minibatch of transitions
-        #   Sample the minibatch from the replay-memory
-        #   using done (as a float) instead of if statement
-        #   return loss
-
-
         # Sample the minibatch from the replay-memory
         mini_batch_sample = self.replay_buffer.sample(self.batch_size)
         states_batch,actions_batch,rewards_batch,next_states_batch,done_batch = mini_batch_sample
@@ -105,17 +95,20 @@ class DQNAgent:
         current_Q = self.policy_network.state_dict()
         self.target_network.load_state_dict(current_Q)
 
-    def act(self, state: np.ndarray):
+    def act(self, glyphs_state: np.ndarray, stats_state: np.ndarray):
         """
         Select an action greedily from the Q-network given the state
         :param state: the current state
         :return: the action to take
         """
         # Wrap state data in float tensors , and copy to GPU [3]
-        current_state = np.array(state).astype(np.float)/255.0
-        current_state = torch.tensor(current_state , dtype=torch.float).unsqueeze(0).to(device)
+        glyphs_current_state = np.array(glyphs_state).astype(np.float)/255.0
+        glyphs_current_state = torch.tensor(glyphs_current_state , dtype=torch.float).unsqueeze(0).to(device)
 
-        network_values = self.policy_network(current_state)
+        stats_current_state = np.array(stats_state).astype(np.float)/255.0
+        stats_current_state = torch.tensor(stats_current_state , dtype=torch.float).unsqueeze(0).to(device)
+
+        network_values = self.policy_network(glyphs_current_state,stats_current_state)
         # Choose the greedy action [3]
         none, greedy_action = network_values.max(1)
         # Prevent gradients from flowing into the target network

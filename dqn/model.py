@@ -31,10 +31,11 @@ class DQN(nn.Module):
         self.fc2 = nn.Linear(512, action_space.n)
 
 
-    def forward(self, x):
-        # TODO Implement forward pass [2]
+    def forward(self, new_glyphs, location):
+        x_glyphs = new_glyphs + location
+        x_glyphs = self.conv(x_glyphs)
         # Implement the Deep Q-Network
-        x = nn.functional.relu(self.conv1(x))
+        x = nn.functional.relu(self.conv1(x_glyphs))
         x = nn.functional.relu(self.conv2(x))
         x = nn.functional.relu(self.conv3(x))
         #Flatten the 4D tensor (bastch_size x color_channel x stack x dimensions) to 2D tensor

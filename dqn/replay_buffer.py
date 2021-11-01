@@ -36,20 +36,24 @@ class ReplayBuffer:
         self._next_idx = (self._next_idx + 1) % self._maxsize
 
     def _encode_sample(self, indices):
-        states, actions, rewards, next_states, dones = [], [], [], [], []
+        glyph_states, stat_states, actions, rewards, glyph_next_states, stat_next_states,dones = [], [], [], [], [], [], []
         for i in indices:
             data = self._storage[i]
-            state, action, reward, next_state, done = data
-            states.append(np.array(state, copy=False))
+            glyph_state, stat_state, action, reward, glyph_next_state, stat_next_state,done = data
+            glyph_states.append(np.array(glyph_state, copy=False))
+            stat_states.append(np.array(stat_state, copy=False))
             actions.append(action)
             rewards.append(reward)
-            next_states.append(np.array(next_state, copy=False))
+            glyph_next_states.append(np.array(glyph_next_state, copy=False))
+            stat_next_states.append(np.array(stat_next_state, copy=False))
             dones.append(done)
         return (
-            np.array(states),
+            np.array(glyph_states),
+            np.array(stat_states),
             np.array(actions),
             np.array(rewards),
-            np.array(next_states),
+            np.array(glyph_next_states),
+            np.array(stat_next_states),
             np.array(dones),
         )
 
