@@ -10,6 +10,7 @@ import time
 import minihack 
 from nle import nethack
 import copy
+import time
 
 if __name__ == "__main__":
 
@@ -125,6 +126,7 @@ if __name__ == "__main__":
     glyphs,stats = format_observations(state)
 
     for t in range(hyper_params["num-steps"]):
+        start = time.perf_counter()
         fraction = min(1.0, float(t) / eps_timesteps)
         eps_threshold = hyper_params["eps-start"] + fraction * (
             hyper_params["eps-end"] - hyper_params["eps-start"]
@@ -152,12 +154,12 @@ if __name__ == "__main__":
 
         # Add reward to episode_reward
         episode_rewards[-1] += reward
-        env.render()
+        #env.render()
 
         if done:
             state = env.reset()
             episode_rewards.append(0.0)
-            
+
 
         if (
             t > hyper_params["learning-starts"]
@@ -189,4 +191,7 @@ if __name__ == "__main__":
             print("mean 100 episode reward: {}".format(mean_100ep_reward))
             print("% time spent exploring: {}".format(int(100 * eps_threshold)))
             print("********************************************************")
+            end = time.perf_counter()
+
+            print(end-start)
     torch.save(agent.policy_network, 'model.pt')
