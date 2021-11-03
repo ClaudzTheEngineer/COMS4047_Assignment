@@ -82,7 +82,8 @@ if __name__ == "__main__":
         lava = ord('}')
         monster = ord('I')
 
-        copy_obs = observation['chars']
+        copy_obs = observation['chars_crop']
+
         obs_chars = np.zeros(copy_obs.shape)
         obs_chars[np.where((copy_obs == lava) & (copy_obs == monster))] = 0.2
         obs_chars[np.where((copy_obs == walls) | (copy_obs == doors) | copy_obs == closed_door)] = 0.5
@@ -93,14 +94,14 @@ if __name__ == "__main__":
 
         obs_stats = np.array([x_loc,y_loc,score])
 
-        return obs_chars, obs_stats.astype(np.float32)
+        return obs_chars, obs_stats
 
 
 
     np.random.seed(hyper_params["seed"])
     random.seed(hyper_params["seed"])
 
-    env = gym.make(hyper_params["env"],  observation_keys=("glyphs_crop", "chars", "colors", "pixel", "blstats"), actions = NAVIGATE_ACTIONS)
+    env = gym.make(hyper_params["env"],  observation_keys=("glyphs_crop", "chars_crop", "colors", "pixel", "blstats"), actions = NAVIGATE_ACTIONS)
     env.seed(hyper_params["seed"])
     action_space = env.action_space
 
@@ -119,8 +120,8 @@ if __name__ == "__main__":
     episode_loss = []
 
     state = env.reset()
-    print("STATE:")
-    print(state)
+    #print("STATE:")
+    #print(state)
     glyphs,stats = format_observations(state)
 
     for t in range(hyper_params["num-steps"]):
@@ -135,16 +136,14 @@ if __name__ == "__main__":
         else:
             action = agent.act(glyphs,stats)
 
-       
-
         # Take step in env
         next_state, reward, done, _ = env.step(action)
         
         # Add state, action, reward, next_state, float(done) to reply memory - cast done to float
         done = float(done)
 
-        glyph_next_state,_ = format_observations(next_state)
-        agent.replay_buffer.add(glyphs,stats,action,reward,glyph_next_state,next_state,done)
+        glyph_next_state,state_next_state = format_observations(next_state)
+        agent.replay_buffer.add(glyphs,stats,action,reward,glyph_next_state,state_next_state,done)
         #agent.replay_buffer.add(state, action, reward, next_state, done)
         
      
