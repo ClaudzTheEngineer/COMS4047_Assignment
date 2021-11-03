@@ -154,10 +154,10 @@ if __name__ == "__main__":
         episode_rewards[-1] += reward
         env.render()
 
-
         if done:
             state = env.reset()
             episode_rewards.append(0.0)
+            
 
         if (
             t > hyper_params["learning-starts"]
