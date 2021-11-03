@@ -135,15 +135,19 @@ if __name__ == "__main__":
         else:
             action = agent.act(glyphs,stats)
 
-        print("STATS")
-        print(stats)
+       
 
         # Take step in env
         next_state, reward, done, _ = env.step(action)
+        
         # Add state, action, reward, next_state, float(done) to reply memory - cast done to float
         done = float(done)
 
-        agent.replay_buffer.add(state, action, reward, next_state, done)
+        glyph_next_state,_ = format_observations(next_state)
+        agent.replay_buffer.add(glyphs,stats,action,reward,glyph_next_state,next_state,done)
+        #agent.replay_buffer.add(state, action, reward, next_state, done)
+        
+     
         # Update the state
         state = next_state
 
