@@ -92,12 +92,15 @@ if __name__ == "__main__":
         score = observation['blstats'][STATS_IDX['score']]
 
         obs_stats = np.array([x_loc,y_loc,score])
+
         return obs_chars, obs_stats.astype(np.float32)
+
+
 
     np.random.seed(hyper_params["seed"])
     random.seed(hyper_params["seed"])
 
-    env = gym.make(hyper_params["env"],  observation_keys=("glyphs_crop", "chars", "colors", "pixel"), actions = NAVIGATE_ACTIONS)
+    env = gym.make(hyper_params["env"],  observation_keys=("glyphs_crop", "chars", "colors", "pixel", "blstats"), actions = NAVIGATE_ACTIONS)
     env.seed(hyper_params["seed"])
     action_space = env.action_space
 
@@ -116,8 +119,10 @@ if __name__ == "__main__":
     episode_loss = []
 
     state = env.reset()
+    print("STATE:")
     print(state)
     glyphs,stats = format_observations(state)
+
     for t in range(hyper_params["num-steps"]):
         fraction = min(1.0, float(t) / eps_timesteps)
         eps_threshold = hyper_params["eps-start"] + fraction * (
@@ -130,8 +135,11 @@ if __name__ == "__main__":
         else:
             action = agent.act(glyphs,stats)
 
+        print("STATS")
+        print(stats)
+
         # Take step in env
-        next_state, reward, done, _ = env.step(glyphs,stats)
+        next_state, reward, done, _ = env.step(action)
         # Add state, action, reward, next_state, float(done) to reply memory - cast done to float
         done = float(done)
 
