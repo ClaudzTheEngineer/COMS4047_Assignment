@@ -1,6 +1,7 @@
 from gym import spaces
 import torch.nn as nn
-
+import numpy as np
+import torch
 
 class DQN(nn.Module):
     """
@@ -20,20 +21,21 @@ class DQN(nn.Module):
         self.action_space = action_space.n
         self.h = glyphs.shape[0]
         self.w = glyphs.shape[1]
-        self.conv1 = nn.Conv2d(self.h, 32, kernel_size=8, stride=4)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
         #For the 84x84 input, the output from the convolution layer will have 3136
         #9x9 -> 7x7 -> 5x5
         #5x5x32
-        self.fc1 = nn.Linear(800, 512)
+        self.fc1 = nn.Linear(576, 512)
         self.fc2 = nn.Linear(512, action_space.n)
 
 
-    def forward(self, new_glyphs, location):
-        x_glyphs = new_glyphs + location
-        x_glyphs = self.conv(x_glyphs)
+    def forward(self, new_glyphs,location):
+        x_glyphs = new_glyphs.unsqueeze(1).float()
+        #x_glyphs = torch.transpose(x_glyphs,1,3)
+        #x_glyphs = torch.transpose(x_glyphs,0,2)
         # Implement the Deep Q-Network
         x = nn.functional.relu(self.conv1(x_glyphs))
         x = nn.functional.relu(self.conv2(x))
