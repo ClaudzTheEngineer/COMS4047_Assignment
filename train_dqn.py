@@ -1,4 +1,5 @@
 import random
+from minihack import reward_manager
 import numpy as np
 import gym
 import torch
@@ -11,6 +12,7 @@ import minihack
 from nle import nethack
 import copy
 import skimage.io as io
+from minihack import RewardManager
 
 
 if __name__ == "__main__":
@@ -103,7 +105,11 @@ if __name__ == "__main__":
     np.random.seed(hyper_params["seed"])
     random.seed(hyper_params["seed"])
 
-    env = gym.make(hyper_params["env"],  observation_keys=("glyphs_crop", "chars_crop", "colors", "pixel", "blstats"), actions = NAVIGATE_ACTIONS)
+    reward_gen = RewardManager()
+    reward_gen.add_location_event("door", reward=0.2)
+    reward_gen.add_kill_event("demon", reward=0.2)
+
+    env = gym.make(hyper_params["env"],  observation_keys=("glyphs_crop", "chars_crop", "colors", "pixel", "blstats"), actions = NAVIGATE_ACTIONS, reward_manager = reward_gen)
     env.seed(hyper_params["seed"])
     action_space = env.action_space
 
@@ -177,7 +183,7 @@ if __name__ == "__main__":
             agent.update_target_network()
 
         num_episodes = len(episode_rewards)
-        if num_episodes > 900 and num_episodes <= 901:
+        if num_episodes > 10 and num_episodes <= 11:
             io.imsave(f"video/frame_{frame}.png",next_state["pixel"])
             frame += 1
         if (
