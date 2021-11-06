@@ -66,7 +66,7 @@ class DQNAgent:
         done_batch = torch.from_numpy(done_batch).float().to(device)
 
         # Choose the greedy action [3]
-        print(f"before passing {glyph_next_states_batch.shape}")
+        #print(f"before passing {glyph_next_states_batch.shape}")
         none, greedy_action = self.policy_network(glyph_next_states_batch,stat_next_state_batch).max(1)
         # Pass next state to the target network and extract the specific Q-values [3]
         values_next_state = self.target_network(glyph_next_states_batch,stat_next_state_batch).gather(1, greedy_action.unsqueeze(1)).squeeze()

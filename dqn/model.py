@@ -25,9 +25,9 @@ class DQN(nn.Module):
         self.fc2 = nn.Linear(512, action_space.n)
 
     def forward(self, new_glyphs,location):
-        print(new_glyphs.shape)
+        #print(new_glyphs.shape)
         x_glyphs = new_glyphs.unsqueeze(1).float()
-        print(x_glyphs.shape)
+        #print(x_glyphs.shape)
         #x_glyphs = torch.transpose(x_glyphs,1,3)
         #x_glyphs = torch.transpose(x_glyphs,0,2)
         # Implement the Deep Q-Network

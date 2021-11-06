@@ -10,9 +10,11 @@ import time
 import minihack 
 from nle import nethack
 import copy
+import skimage.io as io
+
 
 if __name__ == "__main__":
-
+    frame = 0
     hyper_params = {
         "seed": 42,  # which seed to use
         "env": "MiniHack-Quest-Hard-v0",  # name of the game
@@ -140,6 +142,8 @@ if __name__ == "__main__":
         # Take step in env
         next_state, reward, done, _ = env.step(action)
         
+
+        #output next_state["pixel"]
         # Add state, action, reward, next_state, float(done) to reply memory - cast done to float
         done = float(done)
 
@@ -173,7 +177,9 @@ if __name__ == "__main__":
             agent.update_target_network()
 
         num_episodes = len(episode_rewards)
-
+        if num_episodes > 900 and num_episodes <= 901:
+            io.imsave(f"video/frame_{frame}.png",next_state["pixel"])
+            frame += 1
         if (
             done
             and hyper_params["print-freq"] is not None
