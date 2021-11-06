@@ -10,7 +10,6 @@ import time
 import minihack 
 from nle import nethack
 import copy
-import time
 
 if __name__ == "__main__":
 
@@ -20,7 +19,7 @@ if __name__ == "__main__":
         "replay-buffer-size": int(2e3),  # replay buffer size
         "learning-rate": 0.99,  # learning rate for RMSprop optimizer
         "discount-factor": 0.99,  # discount factor
-        "num-steps": int(3e6),  # total number of steps to run the environment for
+        "num-steps": int(1e6),  # total number of steps to run the environment for
         "batch-size": 32,  # number of transitions to optimize at the same time
         "learning-starts": 10000,  # number of steps before learning starts
         "learning-freq": 5,  # number of iterations between every optimization step

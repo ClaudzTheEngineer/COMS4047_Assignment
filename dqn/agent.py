@@ -49,22 +49,6 @@ class DQNAgent:
         mini_batch_sample = self.replay_buffer.sample(self.batch_size)
         glyph_states_batch,stat_states_batch,actions_batch,rewards_batch,glyph_next_states_batch,stat_next_state_batch,done_batch = mini_batch_sample
 
-        # print(f"glyph_states_batch {glyph_states_batch}")
-        # print(f"stat_states_batch {stat_states_batch}")
-        # print(f"actions_batch {actions_batch}")
-        # print(f"rewards_batch {rewards_batch}")
-        # print(f"glyph_next_states_batch {glyph_next_states_batch}")
-        # print(f"stat_next_state_batch {stat_next_state_batch}")
-        # print(f"done_batch {done_batch}")
-        # Wrap arrays with batch data in float tensors , and copy to GPU [2]
-        # glyph_states_batch = torch.from_numpy(glyph_states_batch).float().to(device)
-        # stat_states_batch = torch.from_numpy(stat_states_batch).float().to(device)
-        # actions_batch = torch.from_numpy(actions_batch).float().to(device)
-        # rewards_batch = torch.from_numpy(rewards_batch).float().to(device)
-        # glyph_next_states_batch = torch.from_numpy(glyph_next_states_batch).float().to(device)
-        # stat_next_state = torch.from_numpy(stat_next_state_batch).float().to(device)
-        # done_batch = torch.from_numpy(done_batch).float().to(device)
-
         # glyph_states_batch = np.array(glyph_next_states_batch).astype(np.uint8)
         stat_states_batch = np.array(stat_states_batch).astype('float')
         # actions_batch = np.array(actions_batch).astype(np.uint8)
@@ -82,6 +66,7 @@ class DQNAgent:
         done_batch = torch.from_numpy(done_batch).float().to(device)
 
         # Choose the greedy action [3]
+        print(f"before passing {glyph_next_states_batch.shape}")
         none, greedy_action = self.policy_network(glyph_next_states_batch,stat_next_state_batch).max(1)
         # Pass next state to the target network and extract the specific Q-values [3]
         values_next_state = self.target_network(glyph_next_states_batch,stat_next_state_batch).gather(1, greedy_action.unsqueeze(1)).squeeze()

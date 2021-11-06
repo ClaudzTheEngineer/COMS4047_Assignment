@@ -16,24 +16,18 @@ class DQN(nn.Module):
         :param action_space: the action space of the environment
         """
         super().__init__()
-
-        self.glyphs_shape = glyphs.shape
         self.action_space = action_space.n
-        self.h = glyphs.shape[0]
-        self.w = glyphs.shape[1]
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
-        #For the 84x84 input, the output from the convolution layer will have 3136
-        #9x9 -> 7x7 -> 5x5
-        #5x5x32
         self.fc1 = nn.Linear(576, 512)
         self.fc2 = nn.Linear(512, action_space.n)
 
-
     def forward(self, new_glyphs,location):
+        print(new_glyphs.shape)
         x_glyphs = new_glyphs.unsqueeze(1).float()
+        print(x_glyphs.shape)
         #x_glyphs = torch.transpose(x_glyphs,1,3)
         #x_glyphs = torch.transpose(x_glyphs,0,2)
         # Implement the Deep Q-Network
