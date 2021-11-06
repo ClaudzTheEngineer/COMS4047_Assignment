@@ -13,12 +13,13 @@ from nle import nethack
 import copy
 import skimage.io as io
 from minihack import RewardManager
-
+import random
+import os
 
 if __name__ == "__main__":
     frame = 0
     hyper_params = {
-        "seed": 42,  # which seed to use
+        "seed": random.randint(0,1000),  # which seed to use
         "env": "MiniHack-Quest-Hard-v0",  # name of the game
         "replay-buffer-size": int(2e3),  # replay buffer size
         "learning-rate": 0.99,  # learning rate for RMSprop optimizer
@@ -85,11 +86,12 @@ if __name__ == "__main__":
         #corridor = ord('#')
         lava = ord('}')
         monster = ord('I')
+        demon = ord('&')
 
         copy_obs = observation['chars_crop']
 
         obs_chars = np.zeros(copy_obs.shape)
-        obs_chars[np.where((copy_obs == lava) & (copy_obs == monster))] = 0.2
+        obs_chars[np.where((copy_obs == lava) & (copy_obs == monster) & (copy_obs == demon))] = 0.2
         obs_chars[np.where((copy_obs == walls) | (copy_obs == doors) | copy_obs == closed_door)] = 0.5
 
         x_loc = observation['blstats'][STATS_IDX['x_coordinate']]
@@ -183,8 +185,11 @@ if __name__ == "__main__":
             agent.update_target_network()
 
         num_episodes = len(episode_rewards)
-        if num_episodes > 10 and num_episodes <= 11:
-            io.imsave(f"video/frame_{frame}.png",next_state["pixel"])
+        if num_episodes > 900 and num_episodes <= 901:
+            if not os.path.isdir(f"video_" + str(hyper_params["seed"])):
+                os.mkdir(f"video_" + str(hyper_params["seed"]))
+
+            io.imsave(f"video_"+ str(hyper_params["seed"]) +f"/frame_{frame}.png",next_state["pixel"])
             frame += 1
         if (
             done
@@ -192,8 +197,8 @@ if __name__ == "__main__":
             and len(episode_rewards) % hyper_params["print-freq"] == 0
         ):
             #Save the reward and the loss
-            np.savetxt('rewards.csv', episode_rewards, delimiter=',', fmt='%1.5f')
-            np.savetxt('loss.csv', episode_loss,delimiter=',', fmt='%1.5f')
+            np.savetxt('rewards_'+ str(hyper_params["seed"]) +'.csv', episode_rewards, delimiter=',', fmt='%1.5f')
+            np.savetxt('loss_'+ str(hyper_params["seed"]) +'.csv', episode_loss,delimiter=',', fmt='%1.5f')
 
             mean_100ep_reward = round(np.mean(episode_rewards[-101:-1]), 1)
             print("********************************************************")
