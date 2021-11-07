@@ -17,6 +17,7 @@ import random
 import os
 
 if __name__ == "__main__":
+
     frame = 0
     hyper_params = {
         "seed": random.randint(0,1000),  # which seed to use
@@ -121,9 +122,9 @@ if __name__ == "__main__":
     replay_buffer = ReplayBuffer(hyper_params["replay-buffer-size"])
 
     agent = DQNAgent(env.observation_space["glyphs_crop"], env.action_space, replay_buffer,
-                     hyper_params["learning-rate"],
-                     hyper_params["batch-size"],
-                     hyper_params["discount-factor"])
+                    hyper_params["learning-rate"],
+                    hyper_params["batch-size"],
+                    hyper_params["discount-factor"])
 
     eps_timesteps = hyper_params["eps-fraction"] * float(hyper_params["num-steps"])
     episode_rewards = [0.0]
@@ -159,13 +160,12 @@ if __name__ == "__main__":
         agent.replay_buffer.add(glyphs,stats,action,reward,glyph_next_state,state_next_state,done)
         #agent.replay_buffer.add(state, action, reward, next_state, done)
         
-     
+    
         # Update the state
         state = next_state
 
         # Add reward to episode_reward
         episode_rewards[-1] += reward
-        #env.render()
 
         if done:
             state = env.reset()
@@ -210,4 +210,4 @@ if __name__ == "__main__":
             end = time.perf_counter()
 
             print(end-start)
-    torch.save(agent.policy_network, 'model.pt')
+    torch.save(agent.policy_network, 'model'+ str(hyper_params["seed"]) +'.pt')
