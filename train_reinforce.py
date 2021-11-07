@@ -4,12 +4,12 @@
 # Claudio Surmon: 1830290
 # Rushil Daya: 1830490
 
-# The following tutorials/public gits were used for the implementation of this Lab
+# The following tutorials/public gits were used for the implementation of this Assignment
 
-#  [1]https://goodboychan.github.io/python/reinforcement_learning/pytorch/udacity/2021/05/12/REINFORCE-CartPole.html#REINFORCE
-#  [2]https://github.com/KaleabTessera/Policy-Gradient/blob/master/reinforce/reinforce.py
-#  [3]https://github.com/andrecianflone/rl_at_ammi/blob/master/REINFORCE_solution.ipynb
-
+#  [1] https://goodboychan.github.io/python/reinforcement_learning/pytorch/udacity/2021/05/12/REINFORCE-CartPole.html#REINFORCE
+#  [2] https://github.com/KaleabTessera/Policy-Gradient/blob/master/reinforce/reinforce.py
+#  [3] https://github.com/andrecianflone/rl_at_ammi/blob/master/REINFORCE_solution.ipynb
+# The skeleton code for the COMS4047A/COMS7053A Lab 4 - Policy Gradients
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,6 +23,8 @@ import random
 from collections import deque
 import minihack 
 from nle import nethack
+import skimage.io as io
+import os
 
 #Using a GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,55 +74,54 @@ class SimplePolicy(nn.Module):
         #Return the action and the log_probability of the action 
         return action.item(), categorical_dist.log_prob(action)
         
+ #Function used to simplify and normalize the observation space (based on code from [4])
 def format_observations(observation):
-        # - and | The walls of a room, or an open door. Or a grave (|).
-        # . The floor of a room, ice, or a doorless doorway.
-        # # A corridor, or iron bars, or a tree, or possibly a kitchen sink (if your dungeon has
-        # sinks), or a drawbridge.
-        # > Stairs down: a way to the next level.
-        # < Stairs up: a way to the previous level.
-        # + A closed door, or a spellbook containing a spell you may be able to learn.
-        # @ Your character or a human.
-        # $ A pile of gold.
-        # ^ A trap (once you have detected it).
-        # ) A weapon.
-        # [ A suit or piece of armor.
-        # % Something edible (not necessarily healthy).
-        # ? A scroll.
-        # / A wand.
-        # = A ring.
-        # ! A potion.
-        # ( A useful item (pick-axe, key, lamp . . . ).
-        # " An amulet or a spider web.
-        # * A gem or rock (possibly valuable, possibly worthless).
-        # ` A boulder or statue.
-        # 0 An iron ball.
-        # _ An altar, or an iron chain.
-        # { A fountain.
-        # } A pool of water or moat or a pool of lava.
-        # \ An opulent throne
-        # I This marks the last known location of an invisible or otherwise unseen monster. Note that the monster could have moved
+    # - and | The walls of a room, or an open door. Or a grave (|).
+    # . The floor of a room, ice, or a doorless doorway.
+    # # A corridor, or iron bars, or a tree, or possibly a kitchen sink (if your dungeon has
+    # sinks), or a drawbridge.
+    # > Stairs down: a way to the next level.
+    # < Stairs up: a way to the previous level.
+    # + A closed door, or a spellbook containing a spell you may be able to learn.
+    # @ Your character or a human.
+    # $ A pile of gold.
+    # ^ A trap (once you have detected it).
+    # ) A weapon.
+    # [ A suit or piece of armor.
+    # % Something edible (not necessarily healthy).
+    # ? A scroll.
+    # / A wand.
+    # = A ring.
+    # ! A potion.
+    # ( A useful item (pick-axe, key, lamp . . . ).
+    # " An amulet or a spider web.
+    # * A gem or rock (possibly valuable, possibly worthless).
+    # ` A boulder or statue.
+    # 0 An iron ball.
+    # _ An altar, or an iron chain.
+    # { A fountain.
+    # } A pool of water or moat or a pool of lava.
+    # \ An opulent throne
+    # I This marks the last known location of an invisible or otherwise unseen monster. Note that the monster could have moved
 
-        walls = ord('-')
-        doors = ord('|')
-        closed_door = ord('+')
-        #corridor = ord('#')
-        lava = ord('}')
-        monster = ord('I')
+    #translate all the text characters to ASCII
+    walls = ord('-')
+    doors = ord('|')
+    closed_door = ord('+')
+    corridor = ord('#')
+    lava = ord('}')
+    monster = ord('I')
+    demon = ord('&')
 
-        copy_obs = observation['chars_crop']
+    #create a copy of the observation space
+    copy_obs = observation['chars_crop']
 
-        obs_chars = np.zeros(copy_obs.shape)
-        obs_chars[np.where((copy_obs == lava) & (copy_obs == monster))] = 0.2
-        obs_chars[np.where((copy_obs == walls) | (copy_obs == doors) | copy_obs == closed_door)] = 0.5
+    #create numpy array to represent our observation space
+    obs_chars = np.zeros(copy_obs.shape) #set everything to 0
+    obs_chars[np.where((copy_obs == lava) & (copy_obs == monster) & (copy_obs == demon))] = 0.2 #set hostile objects to 0.2
+    obs_chars[np.where((copy_obs == walls) | (copy_obs == doors) | copy_obs == closed_door | (copy_obs == corridor))] = 0.5 #set environment to 0.5
 
-        x_loc = observation['blstats'][STATS_IDX['x_coordinate']]
-        y_loc = observation['blstats'][STATS_IDX['y_coordinate']]
-        score = observation['blstats'][STATS_IDX['score']]
-
-        obs_stats = np.array([x_loc,y_loc,score])
-
-        return obs_chars, obs_stats
+    return obs_chars
 
 def moving_average(a, n):
     ret = np.cumsum(a, dtype=float)
@@ -167,7 +168,7 @@ def reinforce(env, policy_model, seed, learning_rate,
         
         #Reset the Environment
         state = env.reset()
-        glyphs,_ = format_observations(state)
+        glyphs = format_observations(state)
         #Generate the episode and save the reward and log probability
         for step in range(max_episode_length):
             
@@ -213,8 +214,8 @@ def reinforce(env, policy_model, seed, learning_rate,
         Adam_optimizer.step()
 
         # report the score to check that we're making progress [2]
-        #if episode % 50 == 0 and verbose:
-        print('Episode {}\tAverage Score: {:.2f}'.format(episode, np.mean(scores)))
+        if episode % 50 == 0 and verbose:
+            print('Episode {}\tAverage Score: {:.2f}'.format(episode, np.mean(scores)))
 
     return policy_model, scores
 
@@ -240,13 +241,15 @@ def compute_returns_naive_baseline(rewards, gamma):
 def reinforce_naive_baseline(env, policy_model, seed, learning_rate,
                              number_episodes,
                              max_episode_length,
-                             gamma, verbose=True):
+                             gamma, verbose=False):
     
     # set random seeds (for reproducibility)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     env.seed(seed)
-    
+
+    frame = 0
+
     #Initalize the policy and Adam optimizer
     policy = policy_model.to(device)
     Adam_optimizer = torch.optim.Adam(policy.parameters(), lr=learning_rate)
@@ -264,7 +267,7 @@ def reinforce_naive_baseline(env, policy_model, seed, learning_rate,
         
         #Reset the Environment
         state = env.reset()
-        glyphs,_ = format_observations(state)
+        glyphs = format_observations(state)
         #Generate the episode and save the reward and log probability
         for step in range(max_episode_length):
             
@@ -283,7 +286,14 @@ def reinforce_naive_baseline(env, policy_model, seed, learning_rate,
                 break
             
             state = next_state
-        
+
+            if episode > 499 and episode <= 500:
+                if not os.path.isdir(f"baseline_video_seed" + str(seed)):
+                    os.mkdir(f"baseline_video_seed" + str(seed))
+
+                io.imsave(f"baseline_video_seed"+ str(seed) +f"/frame_{frame}.png",next_state["pixel"])
+                frame += 1
+            
         #Save the total reward for the episode
         scores.append(sum(rewards_all))
         #scores_deque.append(sum(rewards_all))
@@ -319,14 +329,14 @@ def run_reinforce(env):
     
     policy_model = SimplePolicy(s_size=env.observation_space["glyphs_crop"].shape[0], a_size=env.action_space.n, h_size=50)
     policy, scores = reinforce(env=env, policy_model=policy_model, seed=42, learning_rate=1e-2,
-                               number_episodes=50,
+                               number_episodes=500,
                                max_episode_length=1000,
                                gamma=1.0,
-                               verbose=True)
+                               verbose=False)
     
     # Plot learning curve [1]
     
-    moving_av = moving_average(scores, 50)
+    moving_av = moving_average(scores, 10)
     plt.plot(scores, label='Score')
     plt.plot(moving_av, label='Moving Average (w=50)', linestyle='--')
     plt.ylabel('Score')
@@ -334,9 +344,6 @@ def run_reinforce(env):
     plt.title('REINFORCE learning curve for MiniHack')
     plt.legend()
     plt.savefig('learning_curve.png')
-    plt.show()
-    
-
 
 def investigate_variance_in_reinforce(env):
     #The variance can be seen by running multiple trials with different seeds and averaging the results
@@ -349,9 +356,9 @@ def investigate_variance_in_reinforce(env):
     
     #Initialise the policy and run the reinforce algorithm
     for s in seeds:
-        policy_model = SimplePolicy(s_size=env.observation_space.shape[0], a_size=env.action_space.n,h_size=50)
+        policy_model = SimplePolicy(s_size=env.observation_space["glyphs_crop"].shape[0], a_size=env.action_space.n,h_size=50)
         policy, scores = reinforce(env=env, policy_model=policy_model, seed=int(s), learning_rate=1e-2,
-                               number_episodes=50,
+                               number_episodes=500,
                                max_episode_length=1000,
                                gamma=1.0,
                                verbose=False)
@@ -362,7 +369,7 @@ def investigate_variance_in_reinforce(env):
         print(f"Run:  {run}  complete.")
     
     #Computing the mean and std deviation of returns for all runs [2]
-    moving_avg_scores = np.array([moving_average(score, 1) for score in run_scores])
+    moving_avg_scores = np.array([moving_average(score, 10) for score in run_scores])
     mean = moving_avg_scores.mean(axis=0)
     std = moving_avg_scores.std(axis=0)
 
@@ -371,10 +378,8 @@ def investigate_variance_in_reinforce(env):
     plt.fill_between(x_axis, mean-std, mean+std, color='blue', alpha=0.2)
     plt.ylabel('Score')
     plt.xlabel('Episode #')
-    plt.title('Q1 REINFORCE averaged over 5 seeds')
-    plt.savefig('Q1 reinforce_average.png')
-    plt.show()
-    
+    plt.title('REINFORCE averaged over 5 seeds')
+    plt.savefig('reinforce_average.png')
 
     return mean, std
 
@@ -391,9 +396,9 @@ def run_reinforce_with_naive_baseline(env, mean, std):
     
     #Initialise the policy and run the reinforce algorithm
     for s in seeds:
-        policy_model = SimplePolicy(s_size=env.observation_space.shape[0], a_size=env.action_space.n,h_size=50)
+        policy_model = SimplePolicy(s_size=env.observation_space["glyphs_crop"].shape[0], a_size=env.action_space.n,h_size=50)
         policy, scores = reinforce_naive_baseline(env=env, policy_model=policy_model, seed=int(s), learning_rate=1e-2,
-                               number_episodes=1500,
+                               number_episodes=500,
                                max_episode_length=1000,
                                gamma=1.0,
                                verbose=False)
@@ -401,10 +406,19 @@ def run_reinforce_with_naive_baseline(env, mean, std):
         
         run+=1
         
+        moving_av = moving_average(scores, 10)
+        plt.plot(scores, label='Score')
+        plt.plot(moving_av, label='Moving Average (w=50)', linestyle='--')
+        plt.ylabel('Score')
+        plt.xlabel('Episode #')
+        plt.title('REINFORCE baseline learning curve for MiniHack')
+        plt.legend()
+        plt.savefig('learning_curve_baseline' + str(s) +'.png')
+
         print(f"Reinforce with Naive Baseline Run:  {run}  complete.")
     
     #Computing the mean and std deviation of returns for all runs [2]
-    moving_avg_scores_naive = np.array([moving_average(score, 50) for score in run_scores])
+    moving_avg_scores_naive = np.array([moving_average(score, 10) for score in run_scores])
     mean_naive = moving_avg_scores_naive.mean(axis=0)
     std_naive = moving_avg_scores_naive.std(axis=0)
     
@@ -422,19 +436,23 @@ def run_reinforce_with_naive_baseline(env, mean, std):
     
     plt.ylabel('Score')
     plt.xlabel('Episode #')
-    plt.title('Q2 REINFORCE and REINFOCE with Naive Baseline averaged over 5 seeds')
-    plt.savefig('Q2 reinforce_average.png')
-    plt.show()
+    plt.title('REINFORCE with Naive Baseline averaged over 5 seeds')
+    plt.savefig('reinforce_average_baseline.png')
     
     return
 
+#Actions used by the agent to navigate the world
 MOVE_ACTIONS = tuple(nethack.CompassDirection)
+
+#More actions the action can do
 NAVIGATE_ACTIONS = MOVE_ACTIONS + (
-    nethack.Command.PICKUP,
-    nethack.Command.INVENTORY,
-    nethack.Command.SEARCH,
+    nethack.Command.PICKUP, #the agent can pickup items that are then stored in the inventory
+    nethack.Command.INVENTORY, #an agent can use items in its inventory, such as leviation boots to cross the lava pool
+    nethack.Command.LOOK, #an agent can look what is here
+    nethack.Command.OPEN, # an agent can open a door
 )   
 
+#stats to keep track of the x and y coordinates as well as the total score
 STATS_IDX = {
     'x_coordinate': 0,
     'y_coordinate': 1,
@@ -445,4 +463,5 @@ if __name__ == '__main__':
     env = gym.make('MiniHack-Quest-Hard-v0',observation_keys=("glyphs_crop", "chars_crop", "colors", "pixel", "blstats"), actions = NAVIGATE_ACTIONS)
     run_reinforce(env)
     mean, std = investigate_variance_in_reinforce(env)
-    #run_reinforce_with_naive_baseline(env, mean, std)
+    print(mean,std)
+    run_reinforce_with_naive_baseline(env, mean, std)

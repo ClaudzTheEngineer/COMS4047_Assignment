@@ -1,3 +1,17 @@
+# Group Members
+# Jenalea Rajab: 562262
+# Amy Pegram: 1825142
+# Claudio Surmon: 1830290
+# Rushil Daya: 1830490
+
+# The following tutorials/public gits were used for the implementation of this Assignment:
+# References
+# [1] A. Paszke, “Reinforcement learning (dqn) tutorial.” [Online]. Available: https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
+# [2] J. TORRES.AI. Deep q-network (dqn)-i. [Online]. Available: https://towardsdatascience.com/deep-q-network-dqn-i-bce08bdf2af
+# [3] K. Tessera. Dqn atari. [Online]. Available: https://github.com/KaleabTessera/DQN-Atari
+# [4] https://github.com/Pieter-Cawood/Reinforcement-Learning/blob/master/NLE_DQN/Agent.py
+# [5] The skeleton code for the COMS4047A/COMS7053A Lab 3 - Deep Q-Network
+
 import random
 from minihack import reward_manager
 import numpy as np
@@ -17,7 +31,6 @@ import random
 import os
 
 if __name__ == "__main__":
-
     frame = 0
     hyper_params = {
         "seed": random.randint(0,1000),  # which seed to use
@@ -35,23 +48,19 @@ if __name__ == "__main__":
         "eps-end": 0.1,  # e-greedy end threshold
         "eps-fraction": 0.1,  # fraction of num-steps
         "print-freq": 10,
-        "mode": "train"
-
     }
-
+    #Actions used by the agent to navigate the world
     MOVE_ACTIONS = tuple(nethack.CompassDirection)
+
+    #More actions the action can do
     NAVIGATE_ACTIONS = MOVE_ACTIONS + (
-        nethack.Command.PICKUP,
-        nethack.Command.INVENTORY,
-        nethack.Command.SEARCH,
+        nethack.Command.PICKUP, #the agent can pickup items that are then stored in the inventory
+        nethack.Command.INVENTORY, #an agent can use items in its inventory, such as leviation boots to cross the lava pool
+        nethack.Command.LOOK, #an agent can look what is here
+        nethack.Command.OPEN, # an agent can open a door
     )   
 
-    STATS_IDX = {
-        'x_coordinate': 0,
-        'y_coordinate': 1,
-        'score': 9,
-    }
-
+    #Function used to simplify and normalize the observation space (based on code from [4])
     def format_observations(observation):
         # - and | The walls of a room, or an open door. Or a grave (|).
         # . The floor of a room, ice, or a doorless doorway.
@@ -81,43 +90,38 @@ if __name__ == "__main__":
         # \ An opulent throne
         # I This marks the last known location of an invisible or otherwise unseen monster. Note that the monster could have moved
 
+        #translate all the text characters to ASCII
         walls = ord('-')
         doors = ord('|')
         closed_door = ord('+')
-        #corridor = ord('#')
+        corridor = ord('#')
         lava = ord('}')
         monster = ord('I')
         demon = ord('&')
 
+        #create a copy of the observation space
         copy_obs = observation['chars_crop']
 
-        obs_chars = np.zeros(copy_obs.shape)
-        obs_chars[np.where((copy_obs == lava) & (copy_obs == monster) & (copy_obs == demon))] = 0.2
-        obs_chars[np.where((copy_obs == walls) | (copy_obs == doors) | copy_obs == closed_door)] = 0.5
+        #create numpy array to represent our observation space
+        obs_chars = np.zeros(copy_obs.shape) #set everything to 0
+        obs_chars[np.where((copy_obs == lava) & (copy_obs == monster) & (copy_obs == demon))] = 0.2 #set hostile objects to 0.2
+        obs_chars[np.where((copy_obs == walls) | (copy_obs == doors) | copy_obs == closed_door | (copy_obs == corridor))] = 0.5 #set environment to 0.5
 
-        x_loc = observation['blstats'][STATS_IDX['x_coordinate']]
-        y_loc = observation['blstats'][STATS_IDX['y_coordinate']]
-        score = observation['blstats'][STATS_IDX['score']]
+        return obs_chars
 
-        obs_stats = np.array([x_loc,y_loc,score])
-
-        return obs_chars, obs_stats
-
-
-
+    #get the seed from the given hyperparameters
     np.random.seed(hyper_params["seed"])
     random.seed(hyper_params["seed"])
 
+    #Change the built in reward manager to include a reward for opening a door and killing a demon
     reward_gen = RewardManager()
     reward_gen.add_location_event("door", reward=0.2)
     reward_gen.add_kill_event("demon", reward=0.2)
 
+    #create the env, with glyphs_crop and not glyphs so that observation space will be 9x9
     env = gym.make(hyper_params["env"],  observation_keys=("glyphs_crop", "chars_crop", "colors", "pixel", "blstats"), actions = NAVIGATE_ACTIONS, reward_manager = reward_gen)
-    env.seed(hyper_params["seed"])
+    env.seed(hyper_params["seed"]) #environment is created with the random seed
     action_space = env.action_space
-
-    # Call the gym wrapper to create the video
-    #env = gym.wrappers.Monitor(env, './minihack_video/', video_callable=lambda episode_id: episode_id % 100 == 0,force=True)
 
     replay_buffer = ReplayBuffer(hyper_params["replay-buffer-size"])
 
@@ -130,14 +134,12 @@ if __name__ == "__main__":
     episode_rewards = [0.0]
     episode_loss = []
 
-    state = env.reset()
-    #print("STATE:")
-    #print(state)
-    glyphs,stats = format_observations(state)
+    state = env.reset() #reset the state space
+    glyphs = format_observations(state) #format the observation space for normalization
 
+    # Episode loop taken from the Lab [5]
     for t in range(hyper_params["num-steps"]):
-        start = time.perf_counter()
-        fraction = min(1.0, float(t) / eps_timesteps)
+        fraction = min(1.0, float(t) / eps_timesteps) 
         eps_threshold = hyper_params["eps-start"] + fraction * (
             hyper_params["eps-end"] - hyper_params["eps-start"]
         )
@@ -146,21 +148,17 @@ if __name__ == "__main__":
         if sample <= eps_threshold:
             action = env.action_space.sample()
         else:
-            action = agent.act(glyphs,stats)
+            action = agent.act(glyphs)
 
         # Take step in env
         next_state, reward, done, _ = env.step(action)
         
-
-        #output next_state["pixel"]
         # Add state, action, reward, next_state, float(done) to reply memory - cast done to float
         done = float(done)
 
-        glyph_next_state,state_next_state = format_observations(next_state)
-        agent.replay_buffer.add(glyphs,stats,action,reward,glyph_next_state,state_next_state,done)
-        #agent.replay_buffer.add(state, action, reward, next_state, done)
+        glyph_next_state = format_observations(next_state) # format observation before adding to the replay buffer
+        agent.replay_buffer.add(glyphs,action,reward,glyph_next_state,done)
         
-    
         # Update the state
         state = next_state
 
@@ -171,31 +169,23 @@ if __name__ == "__main__":
             state = env.reset()
             episode_rewards.append(0.0)
 
+        #if the program has run for a certain amount of steps, the neural will start learning using the replay buffer
+        if (t > hyper_params["learning-starts"] and t % hyper_params["learning-freq"] == 0): 
+            episode_loss.append(agent.optimise_td_loss()) #parameters are updated every 5 steps
 
-        if (
-            t > hyper_params["learning-starts"]
-            and t % hyper_params["learning-freq"] == 0
-        ):
-            episode_loss.append(agent.optimise_td_loss())
-
-        if (
-            t > hyper_params["learning-starts"]
-            and t % hyper_params["target-update-freq"] == 0
-        ):
-            agent.update_target_network()
+        if (t > hyper_params["learning-starts"] and t % hyper_params["target-update-freq"] == 0):
+            agent.update_target_network() #update the target network every 1000 steps
 
         num_episodes = len(episode_rewards)
+        #Use the pixel parameter to create a video for our agent at the last step of the epsiode
         if num_episodes > 900 and num_episodes <= 901:
             if not os.path.isdir(f"video_" + str(hyper_params["seed"])):
                 os.mkdir(f"video_" + str(hyper_params["seed"]))
 
             io.imsave(f"video_"+ str(hyper_params["seed"]) +f"/frame_{frame}.png",next_state["pixel"])
             frame += 1
-        if (
-            done
-            and hyper_params["print-freq"] is not None
-            and len(episode_rewards) % hyper_params["print-freq"] == 0
-        ):
+        
+        if (done and hyper_params["print-freq"] is not None and len(episode_rewards) % hyper_params["print-freq"] == 0):
             #Save the reward and the loss
             np.savetxt('rewards_'+ str(hyper_params["seed"]) +'.csv', episode_rewards, delimiter=',', fmt='%1.5f')
             np.savetxt('loss_'+ str(hyper_params["seed"]) +'.csv', episode_loss,delimiter=',', fmt='%1.5f')
@@ -207,7 +197,4 @@ if __name__ == "__main__":
             print("mean 100 episode reward: {}".format(mean_100ep_reward))
             print("% time spent exploring: {}".format(int(100 * eps_threshold)))
             print("********************************************************")
-            end = time.perf_counter()
-
-            print(end-start)
     torch.save(agent.policy_network, 'model'+ str(hyper_params["seed"]) +'.pt')
