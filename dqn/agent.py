@@ -26,8 +26,8 @@ class DQNAgent:
         :param batch_size: the batch size
         :param gamma: the discount factor
         """
-        self.policy_network = DQN(glyphs, action_space).to(device)
-        self.target_network = DQN(glyphs, action_space).to(device)
+        self.policy_network = DQN(glyphs, action_space).to(device) #initialize the policy network and pass it to the specified device
+        self.target_network = DQN(glyphs, action_space).to(device) #initialize the target network and pass it to the specified device
         self.update_target_network()
         self.target_network.eval()
 
@@ -47,29 +47,20 @@ class DQNAgent:
         """
         # Sample the minibatch from the replay-memory
         mini_batch_sample = self.replay_buffer.sample(self.batch_size)
-        glyph_states_batch,stat_states_batch,actions_batch,rewards_batch,glyph_next_states_batch,stat_next_state_batch,done_batch = mini_batch_sample
-
-        # glyph_states_batch = np.array(glyph_next_states_batch).astype(np.uint8)
-        stat_states_batch = np.array(stat_states_batch).astype('float')
-        # actions_batch = np.array(actions_batch).astype(np.uint8)
-        # rewards_batch = np.array(rewards_batch).astype(np.uint8)
-        # glyph_next_states_batch = np.array(glyph_next_states_batch).astype(np.uint8)
-        stat_next_state_batch = np.array(stat_next_state_batch).astype('float')
-        # done_batch = np.array(done_batch).astype(np.uint8)
+        glyph_states_batch,actions_batch,rewards_batch,glyph_next_states_batch,done_batch = mini_batch_sample
         
         glyph_states_batch = torch.from_numpy(glyph_states_batch).float().to(device)
-        stat_states_batch = torch.from_numpy(stat_states_batch).to(device)
         actions_batch = torch.from_numpy(actions_batch).long().to(device)
         rewards_batch = torch.from_numpy(rewards_batch).float().to(device)
         glyph_next_states_batch = torch.from_numpy(glyph_next_states_batch).float().to(device)
-        stat_next_state_batch = torch.from_numpy(stat_next_state_batch).to(device)
         done_batch = torch.from_numpy(done_batch).float().to(device)
 
         # Choose the greedy action [3]
-        #print(f"before passing {glyph_next_states_batch.shape}")
-        none, greedy_action = self.policy_network(glyph_next_states_batch,stat_next_state_batch).max(1)
+        none, greedy_action = self.policy_network(glyph_next_states_batch).max(1)
+
         # Pass next state to the target network and extract the specific Q-values [3]
-        values_next_state = self.target_network(glyph_next_states_batch,stat_next_state_batch).gather(1, greedy_action.unsqueeze(1)).squeeze()
+        values_next_state = self.target_network(glyph_next_states_batch).gather(1, greedy_action.unsqueeze(1)).squeeze()
+        
         # Prevent gradients from flowing into the target network [3]
         values_next_state = values_next_state.detach()
 
@@ -77,7 +68,7 @@ class DQNAgent:
         approx_state_action_values = rewards_batch + (1 - done_batch) * self.gamma * values_next_state
 
         #Pass obseravtions to the policy network and extract the specific Q-values [2][3]
-        state_action_values = self.policy_network(glyph_next_states_batch,stat_next_state_batch).gather(1, actions_batch.unsqueeze(1)).squeeze()
+        state_action_values = self.policy_network(glyph_next_states_batch).gather(1, actions_batch.unsqueeze(1)).squeeze()
 
         # Compute the loss
         loss = torch.nn.functional.smooth_l1_loss(state_action_values, approx_state_action_values)
@@ -88,9 +79,7 @@ class DQNAgent:
         self.RMS.step()
 
         del glyph_states_batch
-        del stat_states_batch
         del glyph_next_states_batch
-        del stat_next_state_batch
 
         return loss.item()
 
@@ -99,9 +88,9 @@ class DQNAgent:
         Update the target Q-network by copying the weights from the current Q-network
         """
         current_Q = self.policy_network.state_dict()
-        self.target_network.load_state_dict(current_Q)
+        self.target_network.load_state_dict(current_Q) 
 
-    def act(self, glyphs_state: np.ndarray, stats_state: np.ndarray):
+    def act(self, glyphs_state: np.ndarray):
         """
         Select an action greedily from the Q-network given the state
         :param state: the current state
@@ -111,11 +100,8 @@ class DQNAgent:
         glyphs_current_state = np.array(glyphs_state).astype('float')
         glyphs_current_state = torch.from_numpy(glyphs_current_state).unsqueeze(0).to(device)
 
-        stats_current_state = np.array(stats_state).astype('float')
-        stats_current_state = torch.from_numpy(stats_current_state).unsqueeze(0).to(device)
-
         with torch.no_grad():
-            network_values = self.policy_network(glyphs_current_state,stats_current_state)
+            network_values = self.policy_network(glyphs_current_state)
         # Choose the greedy action [3]
         none, greedy_action = network_values.max(1)
 
