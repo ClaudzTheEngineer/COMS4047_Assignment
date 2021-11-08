@@ -32,18 +32,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Define the Policy 
 # The output of the NN is the action and the log probability of the action 
 class SimplePolicy(nn.Module):
-    def __init__(self, s_size,  a_size, h_size=16):
-        #print(f"size in action: {a_size}")
+    def __init__(self, s_size,  a_size):
         super(SimplePolicy,self).__init__()
+        #create a CNN with 3 convolutional layers and 1 fully connected layer
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
-        #For the 84x84 input, the output from the convolution layer will have 3136
-        #9x9 -> 7x7 -> 5x5
-        #5x5x32
         self.fc1 = nn.Linear(576, a_size)
-        #self.fc2 = nn.Linear(512, a_size)
 
     def forward(self, x):
         #Where x is the state
@@ -58,7 +54,7 @@ class SimplePolicy(nn.Module):
         x = nn.functional.relu(self.conv1(x_glyphs))
         x = nn.functional.relu(self.conv2(x))
         x = nn.functional.relu(self.conv3(x))
-        #Flatten the 4D tensor (bastch_size x color_channel x stack x dimensions) to 2D tensor
+        #Flatten the 4D tensor (batch_size x color_channel x stack x dimensions) to 2D tensor
         x = nn.functional.relu(self.fc1(x.view(x.size(0), -1)))
         
         #We want the 1D probability of the action
@@ -327,7 +323,7 @@ def run_reinforce(env):
     # The env has a discrete action space (2) ( left or right ), 
     # and a 4 dimensional state space (position, velocity, pendulum angle and its angular velocity)
     
-    policy_model = SimplePolicy(s_size=env.observation_space["glyphs_crop"].shape[0], a_size=env.action_space.n, h_size=50)
+    policy_model = SimplePolicy(s_size=env.observation_space["glyphs_crop"].shape[0], a_size=env.action_space.n)
     policy, scores = reinforce(env=env, policy_model=policy_model, seed=42, learning_rate=1e-2,
                                number_episodes=500,
                                max_episode_length=1000,
@@ -356,7 +352,7 @@ def investigate_variance_in_reinforce(env):
     
     #Initialise the policy and run the reinforce algorithm
     for s in seeds:
-        policy_model = SimplePolicy(s_size=env.observation_space["glyphs_crop"].shape[0], a_size=env.action_space.n,h_size=50)
+        policy_model = SimplePolicy(s_size=env.observation_space["glyphs_crop"].shape[0], a_size=env.action_space.n)
         policy, scores = reinforce(env=env, policy_model=policy_model, seed=int(s), learning_rate=1e-2,
                                number_episodes=500,
                                max_episode_length=1000,
@@ -396,7 +392,7 @@ def run_reinforce_with_naive_baseline(env, mean, std):
     
     #Initialise the policy and run the reinforce algorithm
     for s in seeds:
-        policy_model = SimplePolicy(s_size=env.observation_space["glyphs_crop"].shape[0], a_size=env.action_space.n,h_size=50)
+        policy_model = SimplePolicy(s_size=env.observation_space["glyphs_crop"].shape[0], a_size=env.action_space.n)
         policy, scores = reinforce_naive_baseline(env=env, policy_model=policy_model, seed=int(s), learning_rate=1e-2,
                                number_episodes=500,
                                max_episode_length=1000,
@@ -436,7 +432,7 @@ def run_reinforce_with_naive_baseline(env, mean, std):
     
     plt.ylabel('Score')
     plt.xlabel('Episode #')
-    plt.title('REINFORCE with Naive Baseline averaged over 5 seeds')
+    plt.title('REINFORCE and REINFORCE with Naive Baseline averaged over 5 seeds')
     plt.savefig('reinforce_average_baseline.png')
     
     return
