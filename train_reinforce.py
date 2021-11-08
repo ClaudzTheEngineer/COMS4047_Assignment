@@ -35,11 +35,11 @@ class SimplePolicy(nn.Module):
     def __init__(self, s_size,  a_size):
         super(SimplePolicy,self).__init__()
         #create a CNN with 3 convolutional layers and 1 fully connected layer
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.conv1 = nn.Conv2d(1, 8, kernel_size=3, stride=1)
+        self.conv2 = nn.Conv2d(8, 16, kernel_size=3, stride=1)
+        self.conv3 = nn.Conv2d(16, 16, kernel_size=3, stride=1)
 
-        self.fc1 = nn.Linear(576, a_size)
+        self.fc1 = nn.Linear(144, a_size)
 
     def forward(self, x):
         #Where x is the state
@@ -340,6 +340,7 @@ def run_reinforce(env):
     plt.title('REINFORCE learning curve for MiniHack')
     plt.legend()
     plt.savefig('learning_curve.png')
+    plt.clf()
 
 def investigate_variance_in_reinforce(env):
     #The variance can be seen by running multiple trials with different seeds and averaging the results
@@ -376,7 +377,7 @@ def investigate_variance_in_reinforce(env):
     plt.xlabel('Episode #')
     plt.title('REINFORCE averaged over 5 seeds')
     plt.savefig('reinforce_average.png')
-
+    plt.clf()
     return mean, std
 
 
@@ -410,6 +411,7 @@ def run_reinforce_with_naive_baseline(env, mean, std):
         plt.title('REINFORCE baseline learning curve for MiniHack')
         plt.legend()
         plt.savefig('learning_curve_baseline' + str(s) +'.png')
+        plt.clf()
 
         print(f"Reinforce with Naive Baseline Run:  {run}  complete.")
     
@@ -434,6 +436,7 @@ def run_reinforce_with_naive_baseline(env, mean, std):
     plt.xlabel('Episode #')
     plt.title('REINFORCE and REINFORCE with Naive Baseline averaged over 5 seeds')
     plt.savefig('reinforce_average_baseline.png')
+    plt.clf()
     
     return
 
