@@ -334,7 +334,7 @@ def run_reinforce(env):
     
     moving_av = moving_average(scores, 10)
     plt.plot(scores, label='Score')
-    plt.plot(moving_av, label='Moving Average (w=50)', linestyle='--')
+    plt.plot(moving_av, label='Moving Average (w=10)', linestyle='--')
     plt.ylabel('Score')
     plt.xlabel('Episode #')
     plt.title('REINFORCE learning curve for MiniHack')
@@ -405,7 +405,7 @@ def run_reinforce_with_naive_baseline(env, mean, std):
         
         moving_av = moving_average(scores, 10)
         plt.plot(scores, label='Score')
-        plt.plot(moving_av, label='Moving Average (w=50)', linestyle='--')
+        plt.plot(moving_av, label='Moving Average (w=10)', linestyle='--')
         plt.ylabel('Score')
         plt.xlabel('Episode #')
         plt.title('REINFORCE baseline learning curve for MiniHack')
